@@ -1,0 +1,526 @@
+[
+    {
+        "id": "6940f91a6dfb5380",
+        "type": "tab",
+        "label": "Flux 4",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "5d544cda81bf717c",
+        "type": "inject",
+        "z": "6940f91a6dfb5380",
+        "name": "Simuler données",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "0",
+        "topic": "",
+        "payload": "{\"temp\":40,\"hum\":85,\"air\":45000,\"lum\":5000,\"mvt\":true,\"alerte\":true}",
+        "payloadType": "json",
+        "x": 80,
+        "y": 100,
+        "wires": [
+            [
+                "b1aaf7a0ecf7206e"
+            ]
+        ]
+    },
+    {
+        "id": "b1aaf7a0ecf7206e",
+        "type": "json",
+        "z": "6940f91a6dfb5380",
+        "name": "Parse JSON",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 410,
+        "y": 100,
+        "wires": [
+            [
+                "62fe161c79314a73"
+            ]
+        ]
+    },
+    {
+        "id": "62fe161c79314a73",
+        "type": "function",
+        "z": "6940f91a6dfb5380",
+        "name": "Dispatcher",
+        "func": "var d = msg.payload;\nflow.set('lastData', d);\n\nvar alerte = (d.alerte === true || d.alerte === \"true\" || d.alerte === 1);\nvar hist = flow.get('alertes') || [];\n\nif (alerte) {\n    hist.unshift({\n        time: new Date().toLocaleTimeString(),\n        temp: d.temp,\n        hum: d.hum,\n        mvt: d.mvt ? 'OUI' : 'NON'\n    });\n    if (hist.length > 1440) hist = hist.slice(0, 1440);\n    flow.set('alertes', hist);\n}\n\nvar msgs = [null, null, null, null, null, null, null, null];\nmsgs[0] = { payload: d.temp };\nmsgs[1] = { payload: d.hum };\nmsgs[2] = { payload: d.air };\nmsgs[3] = { payload: d.lum };\nmsgs[4] = { payload: d.mvt ? 1 : 0 };\nmsgs[5] = { payload: alerte ? '🚨 ALERTE!' : '✅ Tout OK' };\nmsgs[6] = [{ payload: d.temp, topic: 'Température' }, { payload: d.hum, topic: 'Humidité' }];\nmsgs[7] = { payload: hist };\nreturn msgs;",
+        "outputs": 8,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 240,
+        "wires": [
+            [
+                "6b9a7631e1315413",
+                "d174e4e84a6cc8c5"
+            ],
+            [
+                "432727dc0b90212e"
+            ],
+            [
+                "6117a264dab4b0c3"
+            ],
+            [
+                "cefeaaef55eeb0dc"
+            ],
+            [
+                "40e339989f28829d"
+            ],
+            [
+                "f3a10851c74495eb",
+                "7fbf319355438290"
+            ],
+            [
+                "bf79179723470ce7"
+            ],
+            [
+                "21972ce008af46ad"
+            ]
+        ],
+        "info": "var d = msg.payload;\r\n\r\nif(d.alerte){\r\n  var hist = flow.get('alertes') || [];\r\n  var now = new Date();\r\n  hist.unshift({time: now.toLocaleTimeString(), temp: d.temp, hum: d.hum, mvt: d.mvt ? 'OUI' : 'non'});\r\n  if(hist.length > 10) hist = hist.slice(0,10);\r\n  flow.set('alertes', hist);\r\n}\r\n\r\nvar msgs = [null,null,null,null,null,null,null,null];\r\nmsgs[0] = {payload: d.temp};\r\nmsgs[1] = {payload: d.hum};\r\nmsgs[2] = {payload: d.air};\r\nmsgs[3] = {payload: d.lum};\r\nmsgs[4] = {payload: d.mvt ? 1 : 0};\r\nmsgs[5] = {payload: d.alerte ? '🚨 ALERTE!' : '✅ Tout OK'};\r\nmsgs[6] = [{payload: d.temp, topic: 'Température'}, {payload: d.hum, topic: 'Humidité'}];\r\nmsgs[7] = {payload: flow.get('alertes') || []};\r\nreturn msgs;"
+    },
+    {
+        "id": "6b9a7631e1315413",
+        "type": "ui_gauge",
+        "z": "6940f91a6dfb5380",
+        "name": "Température",
+        "group": "dd2706e5c7296ed2",
+        "order": 1,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Température",
+        "label": "°C",
+        "format": "{{value}}°C",
+        "min": 0,
+        "max": 50,
+        "seg1": 30,
+        "seg2": 40,
+        "x": 890,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "432727dc0b90212e",
+        "type": "ui_gauge",
+        "z": "6940f91a6dfb5380",
+        "name": "Humidité",
+        "group": "dd2706e5c7296ed2",
+        "order": 2,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Humidité",
+        "label": "%",
+        "format": "{{value}}%",
+        "min": 0,
+        "max": 100,
+        "seg1": 60,
+        "seg2": 80,
+        "x": 880,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "6117a264dab4b0c3",
+        "type": "ui_chart",
+        "z": "6940f91a6dfb5380",
+        "name": "Qualité Air",
+        "group": "dd2706e5c7296ed2",
+        "order": 3,
+        "width": 6,
+        "height": 4,
+        "label": "Qualité Air (ADC)",
+        "chartType": "line",
+        "xformat": "HH:mm:ss",
+        "removeOlder": 1,
+        "removeOlderPoints": 30,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#ff6600"
+        ],
+        "outputs": 1,
+        "x": 880,
+        "y": 240,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cefeaaef55eeb0dc",
+        "type": "ui_gauge",
+        "z": "6940f91a6dfb5380",
+        "name": "Luminosité",
+        "group": "dd2706e5c7296ed2",
+        "order": 4,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Luminosité",
+        "label": "lux",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 65535,
+        "seg1": 20000,
+        "seg2": 50000,
+        "x": 880,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "40e339989f28829d",
+        "type": "ui_gauge",
+        "z": "6940f91a6dfb5380",
+        "name": "Mouvement",
+        "group": "66e14eb8efc2208b",
+        "order": 1,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Mouvement",
+        "label": "",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 1,
+        "seg1": 0.4,
+        "seg2": 0.8,
+        "x": 880,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "f3a10851c74495eb",
+        "type": "ui_text",
+        "z": "6940f91a6dfb5380",
+        "group": "66e14eb8efc2208b",
+        "order": 2,
+        "width": 3,
+        "height": 1,
+        "name": "Statut",
+        "label": "Statut",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 880,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "7fbf319355438290",
+        "type": "ui_template",
+        "z": "6940f91a6dfb5380",
+        "group": "66e14eb8efc2208b",
+        "name": "Couleur fond alerte",
+        "order": 3,
+        "width": 6,
+        "height": 2,
+        "format": "",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 880,
+        "y": 400,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d174e4e84a6cc8c5",
+        "type": "ui_button",
+        "z": "6940f91a6dfb5380",
+        "name": "Reset Alarme",
+        "group": "66e14eb8efc2208b",
+        "order": 4,
+        "width": 3,
+        "height": 1,
+        "passthru": false,
+        "label": "🔕 Reset Alarme",
+        "tooltip": "",
+        "color": "white",
+        "bgcolor": "#cc0000",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "",
+        "topicType": "str",
+        "x": 860,
+        "y": 40,
+        "wires": [
+            [
+                "49c1d6be45c29669"
+            ]
+        ]
+    },
+    {
+        "id": "49c1d6be45c29669",
+        "type": "function",
+        "z": "6940f91a6dfb5380",
+        "name": "Reset",
+        "func": "flow.set('alertes', []);\nmsg.payload = '✅ Alarme réinitialisée';\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1070,
+        "y": 340,
+        "wires": [
+            [
+                "f3a10851c74495eb"
+            ]
+        ]
+    },
+    {
+        "id": "bf79179723470ce7",
+        "type": "ui_chart",
+        "z": "6940f91a6dfb5380",
+        "name": "Graphe Temp & Hum",
+        "group": "2a8476e51ebccf7d",
+        "order": 1,
+        "width": 12,
+        "height": 5,
+        "label": "Température & Humidité historique",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "HH:mm:ss",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": "5",
+        "removeOlderPoints": 60,
+        "removeOlderUnit": "60",
+        "cutout": "",
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#ff0000",
+            "#0000ff",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 880,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "21972ce008af46ad",
+        "type": "ui_template",
+        "z": "6940f91a6dfb5380",
+        "group": "7115b2128b75fea1",
+        "name": "Tableau alertes",
+        "order": 1,
+        "width": 12,
+        "height": 6,
+        "format": "<style>\n    table {\n        width: 100%;\n        border-collapse: collapse;\n    }\n\n    th,\n    td {\n        border: 1px solid #ccc;\n        padding: 6px;\n        text-align: center;\n    }\n\n    th {\n        background: #2196F3;\n        color: white;\n    }\n</style>\n\n<table>\n    <tr>\n        <th>Heure</th>\n        <th>Température</th>\n        <th>Humidité</th>\n        <th>Mouvement</th>\n    </tr>\n\n    <tr ng-repeat=\"x in msg.payload\">\n        <td>{{x.time}}</td>\n        <td>{{x.temp}} °C</td>\n        <td>{{x.hum}} %</td>\n        <td>{{x.mvt}}</td>\n    </tr>\n</table>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 700,
+        "y": 560,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "http1",
+        "type": "http in",
+        "z": "6940f91a6dfb5380",
+        "name": "Wokwi Input",
+        "url": "/wokwi",
+        "method": "post",
+        "upload": true,
+        "skipBodyParsing": true,
+        "swaggerDoc": "",
+        "x": 70,
+        "y": 300,
+        "wires": [
+            [
+                "json_in",
+                "6323f76b65a43bf9"
+            ]
+        ]
+    },
+    {
+        "id": "json_in",
+        "type": "json",
+        "z": "6940f91a6dfb5380",
+        "name": "Parse",
+        "x": 330,
+        "y": 420,
+        "wires": [
+            [
+                "62fe161c79314a73"
+            ]
+        ]
+    },
+    {
+        "id": "6323f76b65a43bf9",
+        "type": "debug",
+        "z": "6940f91a6dfb5380",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 290,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "tmpl1",
+        "type": "http in",
+        "z": "6940f91a6dfb5380",
+        "url": "/dash",
+        "method": "get",
+        "x": 240,
+        "y": 640,
+        "wires": [
+            [
+                "tmpl2"
+            ]
+        ]
+    },
+    {
+        "id": "tmpl2",
+        "type": "template",
+        "z": "6940f91a6dfb5380",
+        "template": "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>IoT</title><script>setInterval(async()=>{try{const r=await fetch('/data');const d=await r.json();document.getElementById('t').textContent=d.temp?.toFixed(1)||'--';document.getElementById('h').textContent=d.hum||'--';document.getElementById('a').textContent=d.air||'--';document.getElementById('l').textContent=d.lum||'--';document.getElementById('s').textContent=d.alerte?'ALERTE!':'OK';}catch(e){}},1000);</script></head><body style='background:#0a0e1a;color:#fff;font-family:sans-serif;padding:20px'><h1 style='color:#00d4ff'>Surveillance IoT</h1><div style='display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:20px 0'><div style='background:#111827;padding:20px;border-radius:12px;border-top:2px solid #ff9f43'><div style='color:#6b7a99;font-size:12px'>TEMPÉRATURE</div><div id='t' style='font-size:36px;color:#ff9f43'>--</div><div style='color:#6b7a99'>°C</div></div><div style='background:#111827;padding:20px;border-radius:12px;border-top:2px solid #00d4ff'><div style='color:#6b7a99;font-size:12px'>HUMIDITÉ</div><div id='h' style='font-size:36px;color:#00d4ff'>--</div><div style='color:#6b7a99'>%</div></div><div style='background:#111827;padding:20px;border-radius:12px;border-top:2px solid #00ff88'><div style='color:#6b7a99;font-size:12px'>QUALITÉ AIR</div><div id='a' style='font-size:36px;color:#00ff88'>--</div><div style='color:#6b7a99'>ADC</div></div><div style='background:#111827;padding:20px;border-radius:12px;border-top:2px solid #ffd93d'><div style='color:#6b7a99;font-size:12px'>LUMINOSITÉ</div><div id='l' style='font-size:36px;color:#ffd93d'>--</div><div style='color:#6b7a99'>lux</div></div></div><div style='background:#111827;padding:20px;border-radius:12px;font-size:24px' id='s'>--</div></body></html>",
+        "x": 440,
+        "y": 640,
+        "wires": [
+            [
+                "tmpl3"
+            ]
+        ]
+    },
+    {
+        "id": "tmpl3",
+        "type": "http response",
+        "z": "6940f91a6dfb5380",
+        "x": 620,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "dg1",
+        "type": "http in",
+        "z": "6940f91a6dfb5380",
+        "name": "GET /data",
+        "url": "/data",
+        "method": "get",
+        "x": 100,
+        "y": 580,
+        "wires": [
+            [
+                "dl1"
+            ]
+        ]
+    },
+    {
+        "id": "dl1",
+        "type": "function",
+        "z": "6940f91a6dfb5380",
+        "name": "Last data",
+        "func": "msg.payload=flow.get('lastData')||{};\nreturn msg;",
+        "outputs": 1,
+        "x": 300,
+        "y": 580,
+        "wires": [
+            [
+                "dr1"
+            ]
+        ]
+    },
+    {
+        "id": "dr1",
+        "type": "http response",
+        "z": "6940f91a6dfb5380",
+        "x": 480,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "dd2706e5c7296ed2",
+        "type": "ui_group",
+        "name": "Capteurs",
+        "tab": "tab1",
+        "order": 1,
+        "disp": true,
+        "width": 6
+    },
+    {
+        "id": "66e14eb8efc2208b",
+        "type": "ui_group",
+        "name": "Statut & Contrôle",
+        "tab": "tab1",
+        "order": 2,
+        "disp": true,
+        "width": 6
+    },
+    {
+        "id": "2a8476e51ebccf7d",
+        "type": "ui_group",
+        "name": "Graphes historiques",
+        "tab": "tab1",
+        "order": 3,
+        "disp": true,
+        "width": 12
+    },
+    {
+        "id": "7115b2128b75fea1",
+        "type": "ui_group",
+        "name": "Historique alertes",
+        "tab": "tab1",
+        "order": 4,
+        "disp": true,
+        "width": 12
+    },
+    {
+        "id": "tab1",
+        "type": "ui_tab",
+        "name": "Surveillance IoT",
+        "icon": "dashboard",
+        "order": 1
+    },
+    {
+        "id": "10e7757e5ea173f6",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6"
+        }
+    }
+]
