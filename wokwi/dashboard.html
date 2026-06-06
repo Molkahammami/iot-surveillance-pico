@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surveillance IoT — Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2236;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8edf5;
+    --muted: #6b7a99;
+    --cyan: #00d4ff;
+    --green: #00ff88;
+    --yellow: #ffd93d;
+    --red: #ff4d6d;
+    --purple: #a78bfa;
+    --orange: #ff9f43;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.85);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    border: 2px solid var(--cyan);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 15px rgba(0,212,255,0.3);
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  #clock {
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .main {
+    padding: 28px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Alert Banner */
+  #alert-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(255,77,109,0.15), rgba(255,77,109,0.05));
+    border: 1px solid rgba(255,77,109,0.4);
+    border-radius: 14px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: alertPulse 1s infinite alternate;
+  }
+
+  @keyframes alertPulse {
+    from { border-color: rgba(255,77,109,0.4); }
+    to { border-color: rgba(255,77,109,0.9); box-shadow: 0 0 20px rgba(255,77,109,0.2); }
+  }
+
+  .alert-icon { font-size: 24px; }
+  .alert-text { font-size: 15px; font-weight: 600; color: var(--red); }
+  .alert-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  #reset-btn {
+    margin-left: auto;
+    background: rgba(255,77,109,0.2);
+    border: 1px solid rgba(255,77,109,0.5);
+    color: var(--red);
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  #reset-btn:hover { background: rgba(255,77,109,0.35); }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+
+  .kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi.temp::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+  .kpi.hum::before { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .kpi.air::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .kpi.lum::before { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+
+  .kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  .kpi-icon {
+    font-size: 20px;
+    opacity: 0.7;
+  }
+
+  .kpi-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi.temp .kpi-value { color: var(--orange); }
+  .kpi.hum .kpi-value { color: var(--cyan); }
+  .kpi.air .kpi-value { color: var(--green); }
+  .kpi.lum .kpi-value { color: var(--yellow); }
+
+  .kpi-unit {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .kpi-bar {
+    margin-top: 14px;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .kpi-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .kpi.temp .kpi-bar-fill { background: linear-gradient(90deg, var(--red), var(--orange)); }
+  .kpi.hum .kpi-bar-fill { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .kpi.air .kpi-bar-fill { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .kpi.lum .kpi-bar-fill { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+
+  /* Bottom grid */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 340px;
+    gap: 16px;
+  }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    border-radius: 2px;
+    background: var(--cyan);
+    display: block;
+  }
+
+  /* Chart */
+  canvas { width: 100% !important; }
+
+  /* Status panel */
+  .status-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg3);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .status-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .dot-ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot-warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .dot-alert { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1s infinite; }
+
+  .status-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Alert history table */
+  .alert-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .alert-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .alert-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+  }
+
+  .alert-table tr:last-child td { border-bottom: none; }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .badge-ok { background: rgba(0,255,136,0.15); color: var(--green); }
+  .badge-alert { background: rgba(255,77,109,0.15); color: var(--red); }
+
+  #no-alerts {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 30px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    Surveillance IoT
+  </div>
+  <div class="status-bar">
+    <div class="live-dot"></div>
+    <span>Connexion active</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Alert banner -->
+  <div id="alert-banner" style="display:none">
+    <span class="alert-icon">🚨</span>
+    <div>
+      <div class="alert-text">ALERTE SYSTÈME DÉTECTÉE</div>
+      <div class="alert-sub" id="alert-detail">Seuil dépassé</div>
+    </div>
+    <button id="reset-btn" onclick="resetAlerte()">✕ Reset</button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi temp">
+      <div class="kpi-header">
+        <span class="kpi-label">Température</span>
+        <span class="kpi-icon">🌡️</span>
+      </div>
+      <div class="kpi-value" id="v-temp">--<span class="kpi-unit"> °C</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-temp" style="width:0%"></div></div>
+    </div>
+    <div class="kpi hum">
+      <div class="kpi-header">
+        <span class="kpi-label">Humidité</span>
+        <span class="kpi-icon">💧</span>
+      </div>
+      <div class="kpi-value" id="v-hum">--<span class="kpi-unit"> %</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-hum" style="width:0%"></div></div>
+    </div>
+    <div class="kpi air">
+      <div class="kpi-header">
+        <span class="kpi-label">Qualité Air</span>
+        <span class="kpi-icon">🌬️</span>
+      </div>
+      <div class="kpi-value" id="v-air">--<span class="kpi-unit"> ADC</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-air" style="width:0%"></div></div>
+    </div>
+    <div class="kpi lum">
+      <div class="kpi-header">
+        <span class="kpi-label">Luminosité</span>
+        <span class="kpi-icon">☀️</span>
+      </div>
+      <div class="kpi-value" id="v-lum">--<span class="kpi-unit"> lux</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-lum" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Bottom -->
+  <div class="bottom-grid">
+
+    <!-- Chart Temp & Hum -->
+    <div class="panel">
+      <div class="panel-title">Historique Température & Humidité</div>
+      <canvas id="chart" height="200"></canvas>
+    </div>
+
+    <!-- Alert history -->
+    <div class="panel">
+      <div class="panel-title">Historique Alertes</div>
+      <div id="alert-history">
+        <div id="no-alerts">Aucune alerte enregistrée</div>
+        <table class="alert-table" id="alert-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Heure</th>
+              <th>Temp</th>
+              <th>Hum</th>
+              <th>Mvt</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="alert-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="panel">
+      <div class="panel-title">Statut Système</div>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-left">
+            <div class="status-dot" id="dot-temp"></div>
+            <span>Température</span>
+          </div>
+          <span class="status-val" id="s-temp">--</span>
+        </div>
+        <div class="status-item">
+          <div class="status-left">
+            <div class="status-dot" id="dot-hum"></div>
+            <span>Humidité</span>
+          </div>
+          <span class="status-val" id="s-hum">--</span>
+        </div>
+        <div class="status-item">
+          <div class="status-left">
+            <div class="status-dot" id="dot-air"></div>
+            <span>Air (MQ135)</span>
+          </div>
+          <span class="status-val" id="s-air">--</span>
+        </div>
+        <div class="status-item">
+          <div class="status-left">
+            <div class="status-dot" id="dot-mvt"></div>
+            <span>Mouvement PIR</span>
+          </div>
+          <span class="status-val" id="s-mvt">--</span>
+        </div>
+        <div class="status-item">
+          <div class="status-left">
+            <div class="status-dot" id="dot-sys"></div>
+            <span>Système</span>
+          </div>
+          <span class="status-val" id="s-sys">En ligne</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Clock
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('fr-FR');
+}, 1000);
+
+// Chart setup
+const ctx = document.getElementById('chart').getContext('2d');
+const labels = [];
+const tempData = [];
+const humData = [];
+const MAX_POINTS = 30;
+
+function drawChart() {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  const pad = { top: 10, right: 10, bottom: 30, left: 40 };
+  const gW = W - pad.left - pad.right;
+  const gH = H - pad.top - pad.bottom;
+
+  if (tempData.length < 2) return;
+
+  const allVals = [...tempData, ...humData];
+  const minV = Math.min(...allVals) - 5;
+  const maxV = Math.max(...allVals) + 5;
+
+  function toX(i) { return pad.left + (i / (tempData.length - 1)) * gW; }
+  function toY(v) { return pad.top + gH - ((v - minV) / (maxV - minV)) * gH; }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * gH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gW, y); ctx.stroke();
+    const val = maxV - (i / 4) * (maxV - minV);
+    ctx.fillStyle = 'rgba(107,122,153,0.8)';
+    ctx.font = '10px Space Mono, monospace';
+    ctx.fillText(val.toFixed(0), 2, y + 4);
+  }
+
+  // Temp line
+  function drawLine(data, color) {
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gH);
+    grad.addColorStop(0, color + '40');
+    grad.addColorStop(1, color + '00');
+
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(data[0]));
+    for (let i = 1; i < data.length; i++) ctx.lineTo(toX(i), toY(data[i]));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Fill
+    ctx.lineTo(toX(data.length - 1), pad.top + gH);
+    ctx.lineTo(toX(0), pad.top + gH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  drawLine(tempData, '#ff9f43');
+  drawLine(humData, '#00d4ff');
+
+  // Labels
+  ctx.fillStyle = 'rgba(107,122,153,0.8)';
+  ctx.font = '10px Outfit, sans-serif';
+  if (labels.length > 0) {
+    ctx.fillText(labels[0], pad.left, H - 8);
+    ctx.fillText(labels[labels.length - 1], toX(labels.length - 1) - 30, H - 8);
+  }
+
+  // Legend
+  ctx.fillStyle = '#ff9f43';
+  ctx.fillRect(W - 120, 10, 12, 3);
+  ctx.fillStyle = '#e8edf5';
+  ctx.font = '11px Outfit';
+  ctx.fillText('Temp', W - 104, 14);
+
+  ctx.fillStyle = '#00d4ff';
+  ctx.fillRect(W - 60, 10, 12, 3);
+  ctx.fillStyle = '#e8edf5';
+  ctx.fillText('Hum', W - 44, 14);
+}
+
+// Alert history
+const alertHist = [];
+
+function resetAlerte() {
+  document.getElementById('alert-banner').style.display = 'none';
+  fetch('http://127.0.0.1:1880/reset', {method:'POST'}).catch(()=>{});
+}
+
+function setDot(id, state) {
+  const el = document.getElementById(id);
+  el.className = 'status-dot ' + (state === 'ok' ? 'dot-ok' : state === 'warn' ? 'dot-warn' : 'dot-alert');
+}
+
+// Polling Node-RED
+async function fetchData() {
+  try {
+    const r = await fetch('http://127.0.0.1:1880/data');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    const t = d.temp ?? 0, h = d.hum ?? 0, air = d.air ?? 0, lum = d.lum ?? 0;
+    const mvt = d.mvt ?? false, alerte = d.alerte ?? false;
+
+    // KPI values
+    document.getElementById('v-temp').innerHTML = t.toFixed(1) + '<span class="kpi-unit"> °C</span>';
+    document.getElementById('v-hum').innerHTML = h.toFixed(0) + '<span class="kpi-unit"> %</span>';
+    document.getElementById('v-air').innerHTML = air + '<span class="kpi-unit"> ADC</span>';
+    document.getElementById('v-lum').innerHTML = lum + '<span class="kpi-unit"> lux</span>';
+
+    // Bars
+    document.getElementById('bar-temp').style.width = Math.min(t / 50 * 100, 100) + '%';
+    document.getElementById('bar-hum').style.width = Math.min(h, 100) + '%';
+    document.getElementById('bar-air').style.width = Math.min(air / 65535 * 100, 100) + '%';
+    document.getElementById('bar-lum').style.width = Math.min(lum / 65535 * 100, 100) + '%';
+
+    // Status dots
+    setDot('dot-temp', t > 35 ? 'alert' : t > 28 ? 'warn' : 'ok');
+    setDot('dot-hum', h > 80 ? 'alert' : h > 65 ? 'warn' : 'ok');
+    setDot('dot-air', air > 40000 ? 'alert' : air > 20000 ? 'warn' : 'ok');
+    setDot('dot-mvt', mvt ? 'alert' : 'ok');
+    setDot('dot-sys', 'ok');
+
+    document.getElementById('s-temp').textContent = t.toFixed(1) + ' °C';
+    document.getElementById('s-hum').textContent = h.toFixed(0) + ' %';
+    document.getElementById('s-air').textContent = air;
+    document.getElementById('s-mvt').textContent = mvt ? 'DÉTECTÉ' : 'Calme';
+    document.getElementById('s-sys').textContent = 'En ligne';
+
+    // Alert banner
+    if (alerte) {
+      document.getElementById('alert-banner').style.display = 'flex';
+      let reasons = [];
+      if (t > 35) reasons.push('Temp: ' + t.toFixed(1) + '°C');
+      if (h > 80) reasons.push('Hum: ' + h.toFixed(0) + '%');
+      if (air > 40000) reasons.push('Air: ' + air);
+      if (mvt) reasons.push('Mouvement détecté');
+      document.getElementById('alert-detail').textContent = reasons.join(' | ');
+
+      // Log alert
+      alertHist.unshift({
+        time: new Date().toLocaleTimeString('fr-FR'),
+        temp: t.toFixed(1),
+        hum: h.toFixed(0),
+        mvt: mvt ? 'OUI' : 'NON',
+        alerte: true
+      });
+      if (alertHist.length > 10) alertHist.pop();
+      updateTable();
+    }
+
+    // Chart
+    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    labels.push(now);
+    tempData.push(t);
+    humData.push(h);
+    if (labels.length > MAX_POINTS) { labels.shift(); tempData.shift(); humData.shift(); }
+
+    ctx.canvas.width = ctx.canvas.offsetWidth;
+    ctx.canvas.height = 200;
+    drawChart();
+
+  } catch(e) {
+    setDot('dot-sys', 'warn');
+    document.getElementById('s-sys').textContent = 'Hors ligne';
+  }
+}
+
+function updateTable() {
+  if (alertHist.length === 0) return;
+  document.getElementById('no-alerts').style.display = 'none';
+  document.getElementById('alert-table').style.display = 'table';
+  const tbody = document.getElementById('alert-body');
+  tbody.innerHTML = alertHist.map(a => `
+    <tr>
+      <td>${a.time}</td>
+      <td>${a.temp}°C</td>
+      <td>${a.hum}%</td>
+      <td>${a.mvt}</td>
+      <td><span class="badge badge-alert">ALERTE</span></td>
+    </tr>
+  `).join('');
+}
+
+// Start polling
+fetchData();
+setInterval(fetchData, 1500);
+</script>
+</body>
+</html>
