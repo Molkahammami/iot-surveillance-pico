@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "author": "Projet Surveillance IoT",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-pi-pico",
+      "id": "pico",
+      "top": 220,
+      "left": 240,
+      "attrs": { "env": "micropython-20260406-v1.28.0" }
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht22",
+      "top": 0.3,
+      "left": 4.2,
+      "attrs": { "humidity": "52", "temperature": "5.7" }
+    },
+    { "type": "wokwi-gas-sensor", "id": "mq135", "top": 0, "left": 180, "attrs": {} },
+    { "type": "wokwi-pir-motion-sensor", "id": "pir", "top": 0, "left": 380, "attrs": {} },
+    { "type": "wokwi-photoresistor-sensor", "id": "ldr", "top": 0, "left": 560, "attrs": {} },
+    { "type": "wokwi-led", "id": "led_r", "top": 460, "left": 0, "attrs": { "color": "red" } },
+    { "type": "wokwi-led", "id": "led_y", "top": 460, "left": 60, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-led", "id": "led_g", "top": 460, "left": 120, "attrs": { "color": "green" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 440, "left": 0, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 440, "left": 60, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 440, "left": 120, "attrs": { "value": "220" } },
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 460, "left": 200, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn",
+      "top": 460,
+      "left": 320,
+      "attrs": { "color": "blue" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r4",
+      "top": 440,
+      "left": 320,
+      "attrs": { "value": "10000" }
+    },
+    { "type": "wokwi-lcd1602", "id": "lcd", "top": 460, "left": 420, "attrs": { "pins": "i2c" } }
+  ],
+  "connections": [
+    [ "pico:GP0", "dht22:SDA", "green", [] ],
+    [ "pico:3V3", "dht22:VCC", "red", [] ],
+    [ "pico:GND.1", "dht22:GND", "black", [] ],
+    [ "pico:GP26", "mq135:AO", "orange", [] ],
+    [ "pico:3V3", "mq135:VCC", "red", [] ],
+    [ "pico:GND.1", "mq135:GND", "black", [] ],
+    [ "pico:GP15", "pir:OUT", "yellow", [] ],
+    [ "pico:3V3", "pir:VCC", "red", [] ],
+    [ "pico:GND.1", "pir:GND", "black", [] ],
+    [ "pico:GP27", "ldr:AO", "cyan", [] ],
+    [ "pico:3V3", "ldr:VCC", "red", [] ],
+    [ "pico:GND.1", "ldr:GND", "black", [] ],
+    [ "pico:GP14", "r1:1", "red", [] ],
+    [ "r1:2", "led_r:A", "red", [] ],
+    [ "pico:GND.1", "led_r:K", "black", [] ],
+    [ "pico:GP13", "r2:1", "yellow", [] ],
+    [ "r2:2", "led_y:A", "yellow", [] ],
+    [ "pico:GND.1", "led_y:K", "black", [] ],
+    [ "pico:GP12", "r3:1", "green", [] ],
+    [ "r3:2", "led_g:A", "green", [] ],
+    [ "pico:GND.1", "led_g:K", "black", [] ],
+    [ "pico:GP16", "buzzer:1", "purple", [] ],
+    [ "pico:GND.1", "buzzer:2", "black", [] ],
+    [ "pico:3V3", "r4:1", "red", [] ],
+    [ "r4:2", "btn:1.l", "white", [] ],
+    [ "pico:GP17", "btn:1.l", "white", [] ],
+    [ "pico:GND.1", "btn:2.l", "black", [] ],
+    [ "pico:GP4", "lcd:SDA", "blue", [] ],
+    [ "pico:GP5", "lcd:SCL", "blue", [] ],
+    [ "pico:3V3", "lcd:VCC", "red", [] ],
+    [ "pico:GND.1", "lcd:GND", "black", [] ]
+  ],
+  "dependencies": {}
+}
